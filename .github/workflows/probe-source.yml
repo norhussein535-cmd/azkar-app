@@ -1,0 +1,35 @@
+name: Probe clean source
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect Islamland source links
+        run: |
+          python - <<'PY'
+          import requests,re
+          urls=[
+            'https://www.islamland.com/uyg/books/%D9%82%D8%A8%D8%B3-%D9%85%D8%AE%D8%AA%D8%A7%D8%B1-%D9%85%D9%86-%D8%B5%D8%AD%D9%8A%D8%AD-%D8%A7%D9%84%D8%A3%D8%B0%D9%83%D8%A7%D8%B1-1442753911',
+            'https://www.islamland.com/ara/books/%D9%82%D8%A8%D8%B3-%D9%85%D8%AE%D8%AA%D8%A7%D8%B1-%D9%85%D9%86-%D8%B5%D8%AD%D9%8A%D8%AD-%D8%A7%D9%84%D8%A3%D8%B0%D9%83%D8%A7%D8%B1-1442753911'
+          ]
+          for u in urls:
+            try:
+              r=requests.get(u,timeout=30,headers={'User-Agent':'Mozilla/5.0'})
+              print('URL',u,'STATUS',r.status_code,'LEN',len(r.content),'FINAL',r.url)
+              text=r.text
+              for x in sorted(set(re.findall(r'https?://[^\"\'<> ]+|href=[\"\']([^\"\']+)',text))):
+                print(x)
+              print('RAW LINKS')
+              for m in re.finditer(r'(?:href|src)=[\"\']([^\"\']+)',text):
+                v=m.group(1)
+                if any(k in v.lower() for k in ['pdf','doc','word','download','file','book']): print(v)
+            except Exception as e: print('ERR',repr(e))
+          PY
