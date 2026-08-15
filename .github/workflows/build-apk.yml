@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,15 +21,18 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Download bundled PDF
+      - name: Restore bundled PDF from successful APK
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p app/src/main/assets
-          PAGE='https://mostafaaladwy.com/books/191954/%D9%82%D8%A8%D8%B3-%D9%85%D8%AE%D8%AA%D8%A7%D8%B1-%D9%85%D9%86-%D8%B5%D8%AD%D9%8A%D8%AD-%D8%A7%D9%84%D8%A7%D8%B0%D9%83%D8%A7%D8%B1-pdf-%D9%84%D9%84%D8%B4%D9%8A%D8%AE-%D9%85%D8%B5%D8%B7%D9%81%D9%89/'
-          curl -L --retry 3 --max-time 60 -A 'Mozilla/5.0' "$PAGE" -o /tmp/bookpage.html
-          echo 'PDF candidates:'
-          grep -Eo 'https?[^"'"'"'<> ]+\.pdf([^"'"'"'<> ]*)?' /tmp/bookpage.html | head -20 || true
-          PDF_URL=$(grep -Eo 'https?[^"'"'"'<> ]+\.pdf([^"'"'"'<> ]*)?' /tmp/bookpage.html | head -1 || true)
-          if [ -n "$PDF_URL" ]; then curl -L --fail --retry 3 -A 'Mozilla/5.0' "$PDF_URL" -o app/src/main/assets/book.pdf; fi
+          mkdir -p app/src/main/assets /tmp/previous-apk
+          curl -L --fail --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            'https://api.github.com/repos/norhussein535-cmd/azkar-app/actions/artifacts/9249829626/zip' \
+            -o /tmp/previous.zip
+          unzip -o /tmp/previous.zip -d /tmp/previous-apk
+          unzip -p /tmp/previous-apk/app-debug.apk assets/book.pdf > app/src/main/assets/book.pdf
           test -s app/src/main/assets/book.pdf
           file app/src/main/assets/book.pdf | grep -i PDF
       - name: Build debug APK
