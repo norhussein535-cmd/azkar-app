@@ -1,6 +1,7 @@
 package com.azkar.book;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.pdf.PdfRenderer;
@@ -65,7 +66,7 @@ public class MainActivity extends Activity {
         tools.setGravity(Gravity.CENTER);
 
         Button index = button("الفهرس");
-        index.setOnClickListener(v -> render(1));
+        index.setOnClickListener(v -> showIndex());
         tools.addView(index);
 
         jump = new EditText(this);
@@ -114,6 +115,24 @@ public class MainActivity extends Activity {
         root.addView(nav, new LinearLayout.LayoutParams(-1, -2));
 
         setContentView(root);
+    }
+
+    private void showIndex() {
+        final String[] items = {
+                "فهرس الكتاب الكامل",
+                "أذكار الصباح والمساء",
+                "    ↳ سيد الاستغفار",
+                "    ↳ مزيد من الحروز المضمونة"
+        };
+        new AlertDialog.Builder(this)
+                .setTitle("الفهرس")
+                .setItems(items, (dialog, which) -> {
+                    if (renderer == null) return;
+                    if (which == 0) render(1);
+                    else render(Math.min(29, renderer.getPageCount() - 1));
+                })
+                .setNegativeButton("إغلاق", null)
+                .show();
     }
 
     private Button button(String text) {
