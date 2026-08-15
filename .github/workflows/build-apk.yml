@@ -20,9 +20,14 @@ jobs:
       - name: Download bundled PDF
         run: |
           mkdir -p app/src/main/assets
-          curl -L --fail --retry 3 'https://drive.google.com/uc?export=download&id=1bM4CoKMHf2s2QtTqabDzjGhwU4orAkfz' -o app/src/main/assets/book.pdf
+          PAGE='https://mostafaaladwy.com/books/191954/%D9%82%D8%A8%D8%B3-%D9%85%D8%AE%D8%AA%D8%A7%D8%B1-%D9%85%D9%86-%D8%B5%D8%AD%D9%8A%D8%AD-%D8%A7%D9%84%D8%A7%D8%B0%D9%83%D8%A7%D8%B1-pdf-%D9%84%D9%84%D8%B4%D9%8A%D8%AE-%D9%85%D8%B5%D8%B7%D9%81%D9%89/'
+          curl -L --retry 3 --max-time 60 -A 'Mozilla/5.0' "$PAGE" -o /tmp/bookpage.html
+          echo 'PDF candidates:'
+          grep -Eo 'https?[^"'"'"'<> ]+\.pdf([^"'"'"'<> ]*)?' /tmp/bookpage.html | head -20 || true
+          PDF_URL=$(grep -Eo 'https?[^"'"'"'<> ]+\.pdf([^"'"'"'<> ]*)?' /tmp/bookpage.html | head -1 || true)
+          if [ -n "$PDF_URL" ]; then curl -L --fail --retry 3 -A 'Mozilla/5.0' "$PDF_URL" -o app/src/main/assets/book.pdf; fi
           test -s app/src/main/assets/book.pdf
-          file app/src/main/assets/book.pdf
+          file app/src/main/assets/book.pdf | grep -i PDF
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
