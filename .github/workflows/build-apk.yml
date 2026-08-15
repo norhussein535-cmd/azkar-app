@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   build:
@@ -21,25 +20,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Restore source book
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify correct book content is bundled
         run: |
-          mkdir -p app/src/main/assets /tmp/previous-apk
-          curl -L --fail --retry 3 \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            'https://api.github.com/repos/norhussein535-cmd/azkar-app/actions/artifacts/9249829626/zip' \
-            -o /tmp/previous.zip
-          unzip -o /tmp/previous.zip -d /tmp/previous-apk
-          unzip -p /tmp/previous-apk/app-debug.apk assets/book.pdf > app/src/main/assets/book.pdf
-          test -s app/src/main/assets/book.pdf
-          file app/src/main/assets/book.pdf | grep -i PDF
-      - name: Generate native adhkar content and counters
-        run: |
-          python -m pip install --quiet PyMuPDF==1.26.3
-          python tools/generate_content.py
-          test -s app/src/main/assets/content.json
+          test -s app/src/main/assets/content.json || (echo "Correct source content is not bundled yet" && exit 1)
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
