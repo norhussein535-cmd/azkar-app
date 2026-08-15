@@ -100,6 +100,44 @@ public class MainActivity extends Activity {
             resume.setOnClickListener(v -> openTopic(lastIndex));
         }
 
+        final int morningIndex = findTopicIndex("أذكار الصباح والمساء");
+        if (morningIndex >= 0) {
+            LinearLayout featured = new LinearLayout(this);
+            featured.setOrientation(LinearLayout.VERTICAL);
+            featured.setPadding(DataStore.dp(this,18),DataStore.dp(this,13),DataStore.dp(this,18),DataStore.dp(this,13));
+            featured.setBackground(DataStore.rounded(DataStore.softGreen(this),DataStore.dp(this,16),DataStore.green(this),2));
+            DataStore.rtl(featured);
+            LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(-1,-2); fp.setMargins(0,10,0,10);
+            root.addView(featured,fp);
+
+            TextView badge = new TextView(this);
+            badge.setText("★ قسم مميز وسريع الوصول");
+            badge.setTextSize(12);
+            badge.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            badge.setTextColor(DataStore.green(this));
+            badge.setGravity(Gravity.RIGHT);
+            featured.addView(badge,new LinearLayout.LayoutParams(-1,-2));
+
+            TextView main = new TextView(this);
+            main.setText("☀  أذكار الصباح والمساء  ☾");
+            main.setTextSize(20);
+            main.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            main.setTextColor(DataStore.green(this));
+            main.setGravity(Gravity.RIGHT);
+            main.setPadding(0,5,0,3);
+            DataStore.rtl(main);
+            featured.addView(main,new LinearLayout.LayoutParams(-1,-2));
+
+            TextView inside = new TextView(this);
+            inside.setText("سيد الاستغفار • مزيد من الحروز المضمونة");
+            inside.setTextSize(13);
+            inside.setTextColor(DataStore.muted(this));
+            inside.setGravity(Gravity.RIGHT);
+            DataStore.rtl(inside);
+            featured.addView(inside,new LinearLayout.LayoutParams(-1,-2));
+            featured.setOnClickListener(v -> openTopic(morningIndex));
+        }
+
         search = new EditText(this);
         search.setHint("ابحث في الفهرس أو داخل الأذكار...");
         search.setTextSize(16);
@@ -161,25 +199,47 @@ public class MainActivity extends Activity {
     }
 
     private View topicCard(JSONObject topic, int index) throws Exception {
+        boolean morning = "أذكار الصباح والمساء".equals(topic.getString("title"));
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(18,15,18,13);
-        card.setBackground(DataStore.rounded(DataStore.card(this),DataStore.dp(this,14),DataStore.border(this),1));
+        card.setBackground(DataStore.rounded(morning ? DataStore.softGreen(this) : DataStore.card(this),DataStore.dp(this,14),morning ? DataStore.green(this) : DataStore.border(this),morning ? 2 : 1));
         DataStore.rtl(card);
         LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2); cp.setMargins(0,0,0,9); card.setLayoutParams(cp);
 
+        if (morning) {
+            TextView badge = new TextView(this);
+            badge.setText("★ أذكار يومية");
+            badge.setTextSize(11);
+            badge.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+            badge.setTextColor(DataStore.green(this));
+            badge.setGravity(Gravity.RIGHT);
+            badge.setPadding(0,0,0,3);
+            card.addView(badge,new LinearLayout.LayoutParams(-1,-2));
+        }
+
         TextView t=new TextView(this);
-        t.setText(topic.getString("title"));
-        t.setTextSize(18); t.setTypeface(Typeface.DEFAULT,Typeface.BOLD); t.setTextColor(DataStore.text(this));
+        t.setText(morning ? "☀  أذكار الصباح والمساء  ☾" : topic.getString("title"));
+        t.setTextSize(morning ? 20 : 18);
+        t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        t.setTextColor(morning ? DataStore.green(this) : DataStore.text(this));
         t.setGravity(Gravity.RIGHT); DataStore.rtl(t);
         card.addView(t,new LinearLayout.LayoutParams(-1,-2));
 
         TextView p=new TextView(this);
-        p.setText("صفحة الكتاب: " + DataStore.arabicNumber(topic.optInt("page",1)) + (hasFavorite(topic) ? "   ★" : ""));
+        String extra = morning ? "   •   سيد الاستغفار + مزيد من الحروز المضمونة" : "";
+        p.setText("صفحة الكتاب: " + DataStore.arabicNumber(topic.optInt("page",1)) + extra + (hasFavorite(topic) ? "   ★" : ""));
         p.setTextSize(12); p.setTextColor(DataStore.muted(this)); p.setGravity(Gravity.RIGHT); p.setPadding(0,5,0,0);
         card.addView(p,new LinearLayout.LayoutParams(-1,-2));
         card.setOnClickListener(v -> openTopic(index));
         return card;
+    }
+
+    private int findTopicIndex(String title) {
+        try {
+            for (int i=0;i<topics.length();i++) if (title.equals(topics.getJSONObject(i).getString("title"))) return i;
+        } catch(Exception ignored) {}
+        return -1;
     }
 
     private void openTopic(int index) {
