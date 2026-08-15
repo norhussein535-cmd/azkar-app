@@ -153,15 +153,26 @@ public class DetailActivity extends Activity {
 
     private CharSequence styledBody(String text){
         SpannableString s=new SpannableString(text);
-        int sanadColor=DataStore.dark(this)?Color.rgb(213,176,124):Color.rgb(132,92,45);
+        int calmColor=DataStore.dark(this)?Color.rgb(213,176,124):Color.rgb(132,92,45);
         int matnColor=DataStore.dark(this)?Color.rgb(154,220,180):Color.rgb(32,103,67);
         int start=findMatnStart(text);
+        int end=findMatnEnd(text,start);
+
         if(start>0 && start<text.length()){
-            s.setSpan(new ForegroundColorSpan(sanadColor),0,start,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            s.setSpan(new ForegroundColorSpan(matnColor),start,text.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            s.setSpan(new StyleSpan(Typeface.BOLD),start,text.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            s.setSpan(new ForegroundColorSpan(calmColor),0,start,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            int matnEnd=(end>start && end<=text.length())?end:text.length();
+            s.setSpan(new ForegroundColorSpan(matnColor),start,matnEnd,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            s.setSpan(new StyleSpan(Typeface.BOLD),start,matnEnd,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            if(matnEnd<text.length()) s.setSpan(new ForegroundColorSpan(calmColor),matnEnd,text.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }else{
-            s.setSpan(new ForegroundColorSpan(matnColor),0,text.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            int noteStart=findStandaloneNoteStart(text);
+            if(noteStart>0 && noteStart<text.length()){
+                s.setSpan(new ForegroundColorSpan(matnColor),0,noteStart,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                s.setSpan(new StyleSpan(Typeface.BOLD),0,noteStart,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                s.setSpan(new ForegroundColorSpan(calmColor),noteStart,text.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }else{
+                s.setSpan(new ForegroundColorSpan(matnColor),0,text.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
         }
         return s;
     }
@@ -177,6 +188,54 @@ public class DetailActivity extends Activity {
             if(p>=0){ int colon=text.indexOf(':',p); if(colon>=0 && colon+1<text.length()) return colon+1; }
         }
         return -1;
+    }
+
+    private int findMatnEnd(String text,int start){
+        if(start<0 || start>=text.length()) return text.length();
+        char first=text.charAt(start);
+        char close=0;
+        if(first=='«') close='»';
+        else if(first=='“') close='”';
+        else if(first=='❝') close='❞';
+        else if(first=='"') close='"';
+        if(close!=0){
+            int p=text.indexOf(close,start+1);
+            if(p>=0 && hasRealTextAfter(text,p+1)) return p+1;
+        }
+        int marker=findAnnotationMarker(text,start+8);
+        return marker>start?marker:text.length();
+    }
+
+    private int findStandaloneNoteStart(String text){
+        int marker=findAnnotationMarker(text,Math.min(12,text.length()));
+        if(marker>0) return marker;
+        String[] rewardStarts={". من قالها","؛ من قالها",". ومن قالها","؛ ومن قالها",". من قال ذلك","؛ من قال ذلك",". وله","؛ وله",". فله","؛ فله"};
+        int best=-1;
+        for(String m:rewardStarts){
+            int p=text.indexOf(m);
+            if(p>=0 && (best<0 || p<best)) best=p+1;
+        }
+        return best;
+    }
+
+    private int findAnnotationMarker(String text,int from){
+        String[] markers={
+                " رواه "," رواه:"," أخرجه "," متفق عليه"," وفي رواية"," وفي الحديث"," وفى الحديث",
+                " قال المصنف"," قال الشيخ"," قال الحافظ"," قال النووي"," قال ابن "," ومعنى "," والمراد ",
+                " أي:"," أي "," تنبيه:"," تعليق:"," فائدة:"," فضله:"," فضل هذا"," ثوابه:"," الأجر:"," الجزاء:"
+        };
+        int best=-1;
+        for(String m:markers){
+            int p=text.indexOf(m,Math.max(0,from));
+            if(p>=0 && (best<0 || p<best)) best=p;
+        }
+        return best;
+    }
+
+    private boolean hasRealTextAfter(String text,int from){
+        if(from>=text.length()) return false;
+        String tail=text.substring(from).replaceAll("[\\s،؛:,.؟!()\\[\\]{}ـ—-]","");
+        return tail.length()>=2;
     }
 
     private void vibrateCompleted(){
