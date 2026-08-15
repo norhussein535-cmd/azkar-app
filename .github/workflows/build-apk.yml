@@ -17,11 +17,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Rebuild bundled PDF
+      - name: Download bundled PDF
         run: |
           mkdir -p app/src/main/assets
-          cat pdf_chunks/chunk_* | base64 --decode > app/src/main/assets/book.pdf
+          curl -L --fail --retry 3 'https://drive.google.com/uc?export=download&id=1bM4CoKMHf2s2QtTqabDzjGhwU4orAkfz' -o app/src/main/assets/book.pdf
           test -s app/src/main/assets/book.pdf
+          file app/src/main/assets/book.pdf
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
