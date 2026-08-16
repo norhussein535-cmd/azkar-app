@@ -40,27 +40,28 @@ jobs:
           python -m pip install --quiet PyMuPDF==1.26.3
           python tools/generate_content.py
           test -s app/src/main/assets/content.json
-      - name: Disable long-press counter reset
+      - name: Make long press count once on release
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('app/src/main/java/com/azkar/book/DetailActivity.java')
           s=p.read_text(encoding='utf-8')
-          s=s.replace('اضغط على نص الذكر نفسه ليزيد العداد • عند اكتمال العدد سيهتز الهاتف • ضغط مطوّل على العداد للتصفير','اضغط على نص الذكر نفسه ليزيد العداد • عند اكتمال العدد سيهتز الهاتف')
-          s=s.replace('body.setOnClickListener(v->incrementFromBody(card,counters,tid,bi,ei,body));','body.setOnClickListener(v->incrementFromBody(card,counters,tid,bi,ei,body));\n            body.setLongClickable(true);\n            body.setOnLongClickListener(v->true);')
+          s=s.replace('اضغط على نص الذكر نفسه ليزيد العداد • عند اكتمال العدد سيهتز الهاتف • ضغط مطوّل على العداد للتصفير','اضغط أو اضغط مطولًا على نص الذكر؛ تُحسب مرة واحدة عند رفع إصبعك • عند اكتمال العدد سيهتز الهاتف')
+          s=s.replace('body.setOnClickListener(v->incrementFromBody(card,counters,tid,bi,ei,body));','body.setLongClickable(false);\n            body.setOnClickListener(v->incrementFromBody(card,counters,tid,bi,ei,body));')
           s=s.replace('else Toast.makeText(this,"اكتمل العدد — اضغط مطولا للتصفير",Toast.LENGTH_SHORT).show();','else Toast.makeText(this,"اكتمل العدد",Toast.LENGTH_SHORT).show();')
           old='count.setOnLongClickListener(v->{prefs.edit().putInt(key,0).apply();updateCounterButton(count,key,target);Toast.makeText(this,"تم تصفير العداد",Toast.LENGTH_SHORT).show();return true;});'
-          new='count.setLongClickable(true); count.setOnLongClickListener(v->true);'
+          new='count.setLongClickable(false);'
           if old not in s:
               raise SystemExit('Expected reset handler not found')
           s=s.replace(old,new)
           p.write_text(s,encoding='utf-8')
           assert 'تم تصفير العداد' not in s
           assert 'putInt(key,0)' not in s
+          assert 'setLongClickable(false)' in s
           PY
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: azkar-app-no-long-press-reset
+          name: azkar-app-long-press-counts
           path: app/build/outputs/apk/debug/app-debug.apk
